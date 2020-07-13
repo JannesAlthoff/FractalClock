@@ -99,15 +99,15 @@ class FractalWallpaperService: WallpaperService() {
             scalingFactor = preference.getInt("scaling_factor", 50).toFloat() / 100f
             clockFaceColor = preference.getInt("color_clock", 0)
             backgroundColor = preference.getInt("color_background", 0)
-            clockType = when(preference.getString("clock_type", "HMS")){
-                "HMS" -> {
+            clockType = when(preference.getString("clock_type", "1")){
+                "1" -> {
                     ClockType.HMS
                 }
-                "MS" -> {
-                    ClockType.MS
-                }
-                "HM" -> {
+                "2" -> {
                     ClockType.HM
+                }
+                "3" -> {
+                    ClockType.MS
                 }
                 else -> {
                     ClockType.HMS

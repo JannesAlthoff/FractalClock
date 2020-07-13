@@ -54,7 +54,7 @@
             app:title="@string/use_tick"
             app:defaultValue="false"/>
         <ListPreference
-            app:defaultValue="hms"
+            app:defaultValue="1"
             app:entries="@array/clock_type_entries"
             app:entryValues="@array/clock_type_values"
             app:key="clock_type"
