@@ -1,0 +1,81 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+        app:title="@string/performance">
+
+        <SwitchPreferenceCompat
+            app:key="use_antialiasing"
+            app:title="@string/use_antialiasing"
+            app:defaultValue="true"/>
+        <SwitchPreferenceCompat
+            app:key="every_second"
+            app:title="@string/every_second"
+            app:defaultValue="false"/>
+
+        <SeekBarPreference
+            app:defaultValue="12"
+            app:key="max_iters"
+            app:title="@string/max_iters"
+            android:max="20"
+            app:min="5"
+            app:showSeekBarValue="true"/>
+
+        <SeekBarPreference
+            app:defaultValue="60"
+            app:key="fps"
+            app:title="@string/fps"
+            android:max="200"
+            app:min="5"
+            app:showSeekBarValue="true"/>
+        <SeekBarPreference
+            app:defaultValue="50"
+            app:key="scaling_factor"
+            app:title="@string/scaling_factor"
+            app:summary="@string/summary_scaling_factor"
+            android:max="300"
+            app:min="1"
+            app:showSeekBarValue="true"/>
+
+    </PreferenceCategory>
+    <PreferenceCategory
+        app:title="@string/look">
+
+        <SwitchPreferenceCompat
+            app:key="draw_clock"
+            app:title="@string/draw_clock"
+            app:defaultValue="true"/>
+
+        <SwitchPreferenceCompat
+            app:key="draw_branches"
+            app:title="@string/draw_branches"
+            app:defaultValue="true"/>
+        <SwitchPreferenceCompat
+            app:key="use_tick"
+            app:title="@string/use_tick"
+            app:defaultValue="false"/>
+        <ListPreference
+            app:defaultValue="hms"
+            app:entries="@array/clock_type_entries"
+            app:entryValues="@array/clock_type_values"
+            app:key="clock_type"
+            app:title="@string/clock_type"
+            app:useSimpleSummaryProvider="true" />
+
+        <com.jaredrummler.android.colorpicker.ColorPreferenceCompat
+            android:defaultValue = "@color/colorClock"
+            android:key = "color_clock"
+            android:title = "@string/color_clock"
+            app:cpv_showAlphaSlider = "true"
+            app:cpv_dialogType = "custom"
+            app:cpv_allowPresets = "false"/>
+
+        <com.jaredrummler.android.colorpicker.ColorPreferenceCompat
+            android:defaultValue = "@color/colorBackground"
+            android:key = "color_background"
+            android:title = "@string/color_background"
+            app:cpv_showAlphaSlider = "false"
+            app:cpv_dialogType = "custom"
+            app:cpv_allowPresets = "false"/>
+    </PreferenceCategory>
+
+</PreferenceScreen>

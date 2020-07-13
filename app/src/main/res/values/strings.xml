@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">FractalClockWallpaper</string>
+    <string name="title_activity_settings">Settings</string>
+
+    <!-- Performance -->
+    <string name="performance">Performance</string>
+    <string name="use_antialiasing">Use Antialiasing</string>
+    <string name="fps">Maximal FPS</string>
+    <string name="max_iters">Iterations</string>
+    <string name="scaling_factor">Scaling Factor</string>
+    <string name="every_second">Render Every Second</string>
+    <string name="summary_scaling_factor">in Percent</string>
+
+    <!-- Look -->
+    <string name="look">Look</string>
+    <string name="draw_clock">Draw Clock</string>
+    <string name="draw_branches">Draw Branches</string>
+    <string name="use_tick">Emulate Ticking</string>
+    <string name="clock_type">Clock Type</string>
+    <string name="color_clock">Clock Color</string>
+    <string name="color_background">Background Color</string>
+</resources>

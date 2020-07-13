@@ -1,0 +1,14 @@
+<resources>
+    <!-- Clock Types -->
+    <string-array name="clock_type_entries">
+        <item>Hour Minute Second</item>
+        <item>Hour Minute</item>
+        <item>Minute Second</item>
+    </string-array>
+
+    <string-array name="clock_type_values">
+        <item>hms</item>
+        <item>hm</item>
+        <item>ms</item>
+    </string-array>
+</resources>
