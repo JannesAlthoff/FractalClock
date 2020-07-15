@@ -19,4 +19,8 @@
     <string name="clock_type">Clock Type</string>
     <string name="color_clock">Clock Color</string>
     <string name="color_background">Background Color</string>
+
+    <!-- Legal -->
+    <string name="legal">Legal</string>
+    <string name="license">Open Source Lincenses</string>
 </resources>

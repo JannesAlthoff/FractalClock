@@ -1,40 +1,41 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
     <PreferenceCategory
+        android:layout_height="wrap_content"
         app:title="@string/performance">
 
         <SwitchPreferenceCompat
+            app:defaultValue="true"
             app:key="use_antialiasing"
-            app:title="@string/use_antialiasing"
-            app:defaultValue="true"/>
+            app:title="@string/use_antialiasing" />
         <SwitchPreferenceCompat
+            app:defaultValue="false"
             app:key="every_second"
-            app:title="@string/every_second"
-            app:defaultValue="false"/>
+            app:title="@string/every_second" />
 
         <SeekBarPreference
+            android:max="20"
             app:defaultValue="12"
             app:key="max_iters"
-            app:title="@string/max_iters"
-            android:max="20"
             app:min="5"
-            app:showSeekBarValue="true"/>
+            app:showSeekBarValue="true"
+            app:title="@string/max_iters" />
 
         <SeekBarPreference
+            android:max="200"
             app:defaultValue="60"
             app:key="fps"
-            app:title="@string/fps"
-            android:max="200"
             app:min="5"
-            app:showSeekBarValue="true"/>
+            app:showSeekBarValue="true"
+            app:title="@string/fps" />
         <SeekBarPreference
+            android:max="300"
             app:defaultValue="50"
             app:key="scaling_factor"
-            app:title="@string/scaling_factor"
-            app:summary="@string/summary_scaling_factor"
-            android:max="300"
             app:min="1"
-            app:showSeekBarValue="true"/>
+            app:showSeekBarValue="true"
+            app:summary="@string/summary_scaling_factor"
+            app:title="@string/scaling_factor" />
 
     </PreferenceCategory>
     <PreferenceCategory
@@ -76,6 +77,12 @@
             app:cpv_showAlphaSlider = "false"
             app:cpv_dialogType = "custom"
             app:cpv_allowPresets = "false"/>
+    </PreferenceCategory>
+    <PreferenceCategory
+        app:title="@string/legal">
+        <Preference
+            app:title="@string/license"
+            app:key="license"/>
     </PreferenceCategory>
 
 </PreferenceScreen>
