@@ -14,7 +14,7 @@ or use this Download Link https://github.com/JolokHD/FractalClock/archive/master
 - Click on Build: Make Project
 - APK will be generated in `app\build\outputs\apk\debug`
 
-## How to applay
+## How to apply
 - Go to the Wallpaper Settings on your Phone
 - Click on FractalClock
 - Change Settings in Settings
