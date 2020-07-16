@@ -7,7 +7,9 @@ This is a Live Wallpaper based on https://github.com/HackerPoet/FractalClock imp
 
 ## Dependencies
 https://developer.android.com/jetpack/androidx
-https://github.com/jaredrummler/ColorPicker
-https://github.com/marcoscgdev/Licenser
-https://kotlinlang.org
 
+https://github.com/jaredrummler/ColorPicker
+
+https://github.com/marcoscgdev/Licenser
+
+https://kotlinlang.org
