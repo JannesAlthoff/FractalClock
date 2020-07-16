@@ -16,10 +16,15 @@
 */
 package jolokhd.fractalclock.wallpaper
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import com.marcoscg.licenser.Library
+import com.marcoscg.licenser.License
+import com.marcoscg.licenser.LicenserDialog
 
 
 class SettingsActivity : AppCompatActivity() {
@@ -37,6 +42,34 @@ class SettingsActivity : AppCompatActivity() {
     class SettingsFragment : PreferenceFragmentCompat() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.root_preferences, rootKey)
+            findPreference<Preference>("license")?.setOnPreferenceClickListener { return@setOnPreferenceClickListener showPrefs(); }
+        }
+
+        private fun showPrefs (): Boolean {
+                LicenserDialog(this.context)
+                    .setTitle("Licenses")
+                    //.setCustomNoticeTitle("Notices for files:")
+                    .setLibrary(
+                        Library("FractalClock LiveWallpaper",
+                        "https://github.com/JolokHD/FractalClock",
+                        License.GNU3))
+                    .setLibrary(Library("AndroidX Support Libraries",
+                        "https://developer.android.com/jetpack/androidx",
+                        License.APACHE2))
+                    .setLibrary(Library("Kotlin stdlib","https://kotlinlang.org", License.APACHE2))
+                    .setLibrary(Library("Color Picker",
+                        "https://github.com/jaredrummler/ColorPicker",
+                        License.APACHE2))
+                    .setLibrary(Library("Licenser",
+                        "https://github.com/marcoscgdev/Licenser",
+                        License.MIT))
+                    .setLibrary(Library("FractalClock",
+                        "https://github.com/HackerPoet/FractalClock",
+                        License.APACHE2))
+                    .setPositiveButton(android.R.string.ok,
+                        DialogInterface.OnClickListener { _, _ ->})
+                    .show()
+            return true
         }
     }
 
