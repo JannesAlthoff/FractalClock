@@ -13,6 +13,13 @@ or use this Download Link https://github.com/JolokHD/FractalClock/archive/master
 - Gradle Sync should be started automatically
 - Click on Build: Make Project
 - APK will be generated in `app\build\outputs\apk\debug`
+
+## How to applay
+- Go to the Wallpaper Settings on your Phone
+- Click on FractalClock
+- Change Settings in Settings
+- Click on Apply
+
 ## Dependencies
 https://developer.android.com/jetpack/androidx
 
