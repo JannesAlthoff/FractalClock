@@ -56,9 +56,6 @@ class SettingsActivity : AppCompatActivity() {
                     .setLibrary(Library("AndroidX Support Libraries",
                         "https://developer.android.com/jetpack/androidx",
                         License.APACHE2))
-                    .setLibrary(Library("GLWallpaperService",
-                        "https://github.com/markfguerra/GLWallpaperService",
-                        License.APACHE2))
                     .setLibrary(Library(
                         "Kotlin stdlib",
                         "https://kotlinlang.org",
