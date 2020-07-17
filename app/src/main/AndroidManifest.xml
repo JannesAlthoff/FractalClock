@@ -12,7 +12,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/AppTheme"
+        android:allowBackup="true">
         <activity
             android:name=".SettingsActivity"
             android:exported="true"
@@ -20,7 +21,7 @@
         </activity>
 
         <service
-            android:name=".FractalWallpaperService"
+            android:name=".canvas.FractalWallpaperService"
             android:enabled="true"
             android:label="Fractal Wallpaper"
             android:permission="android.permission.BIND_WALLPAPER" >
