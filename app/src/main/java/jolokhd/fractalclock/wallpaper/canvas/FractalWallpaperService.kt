@@ -14,6 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
+
 @file:Suppress("MayBeConstant")
 
 package jolokhd.fractalclock.wallpaper.canvas
@@ -46,18 +47,14 @@ val ratio: Float = max(max(
     ratioM
 ), ratioS
 )
-var rotH: Vector2f =
-    Vector2f(0.0f, 0.0f)
-var rotM: Vector2f =
-    Vector2f(0.0f, 0.0f)
-var rotS: Vector2f =
-    Vector2f(0.0f, 0.0f)
 
 class FractalWallpaperService: WallpaperService() {
     override fun onCreateEngine(): Engine {
         return FractalWallpaperEngine()
     }
-    private inner class FractalWallpaperEngine : Engine() {
+
+    private inner class FractalWallpaperEngine : Engine(),
+        SharedPreferences.OnSharedPreferenceChangeListener {
         //Settings
         private var useTick: Boolean = false
         private var drawClock: Boolean = true
@@ -70,10 +67,10 @@ class FractalWallpaperService: WallpaperService() {
         private var clockFaceColor: Int = Color.argb(192, 255, 255, 255)
         private var backgroundColor: Int = Color.rgb(16, 16, 16)
         private var scalingFactor: Float = 0.25f
+
         //Internal Values
         private val handler = Handler(Looper.getMainLooper())
         private val drawRunner = Runnable { draw() }
-        private var visible: Boolean = true
         private var width: Int = 0
         private var height: Int = 0
         private var format: Int = 0
@@ -84,80 +81,196 @@ class FractalWallpaperService: WallpaperService() {
         private var hour = Vector2f(0f, 0f)
         private var minute = Vector2f(0f, 0f)
         private var second = Vector2f(0f, 0f)
-        val listener =
-            SharedPreferences.OnSharedPreferenceChangeListener { prefs, _ ->
-                updatePreference(prefs)
-            }
-
+        private var rotH: Vector2f =
+            Vector2f(0.0f, 0.0f)
+        private var rotM: Vector2f =
+            Vector2f(0.0f, 0.0f)
+        private var rotS: Vector2f =
+            Vector2f(0.0f, 0.0f)
         init {
-            updatePreference(PreferenceManager.getDefaultSharedPreferences(this@FractalWallpaperService))
-            PreferenceManager.getDefaultSharedPreferences(this@FractalWallpaperService).registerOnSharedPreferenceChangeListener(listener)
+            onSharedPreferenceChanged(
+                PreferenceManager.getDefaultSharedPreferences(this@FractalWallpaperService),
+                ""
+            )
+            PreferenceManager.getDefaultSharedPreferences(this@FractalWallpaperService)
+                .registerOnSharedPreferenceChangeListener(this)
         }
 
-        //Called if Service Created
+        //Called if Engine Created
         override fun onCreate(surfaceHolder: SurfaceHolder?) {
             super.onCreate(surfaceHolder)
-            setTouchEventsEnabled(false)
+
+            //Disables not used notification
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1) {
                 setOffsetNotificationsEnabled(false)
             }
+            setTouchEventsEnabled(false)
+
+            //Start Drawing
             handler.post(drawRunner)
         }
 
-        //Called if Surface Created
-        override fun onSurfaceCreated(holder: SurfaceHolder?) {
-            super.onSurfaceCreated(holder)
+        //Called if Engine Destroyed
+        override fun onDestroy() {
+            super.onDestroy()
             handler.removeCallbacks(drawRunner)
-            if (visible) {
-                handler.post(drawRunner)
-            }
+            PreferenceManager.getDefaultSharedPreferences(this@FractalWallpaperService)
+                .unregisterOnSharedPreferenceChangeListener(this)
         }
 
         //Called if Surface Destroyed
         override fun onSurfaceDestroyed(holder: SurfaceHolder) {
             super.onSurfaceDestroyed(holder)
-            this.visible = false
-            handler.removeCallbacks(drawRunner)
+
+            //Sets Visibility
+            setVisibility(false)
         }
 
         //Called if Visibility Changed
-        override fun onVisibilityChanged(visible: Boolean) {
-            super.onVisibilityChanged(visible)
-            this.visible = visible
+        override fun onVisibilityChanged(vis: Boolean) {
+            super.onVisibilityChanged(vis)
+
+            //Set Visibility
+            setVisibility(vis)
+        }
+
+        //Called if Surface Changed
+        override fun onSurfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+            super.onSurfaceChanged(holder, format, width, height)
+
+            this.width = width
+            this.height = height
+            this.format = format
+
+            //Update the clock face
+            clockFaceArray1.clear()
+            clockFaceArray2.clear()
+            for (i in 0 until 60) {
+                val pt = Vector2f(
+                    this.width.toFloat() * scalingFactor * 0.5f,
+                    this.height.toFloat() * scalingFactor * 0.5f
+                )
+                val startMag: Float =
+                    min(this.width, this.height) * scalingFactor * 0.5f * (1.0f - ratio) / ratio
+                val ang: Float = i.toFloat() * 2.0f * PI.toFloat() / 60.0f
+                val v =
+                    Vector2f(cos(ang), sin(ang))
+                val isHour: Boolean = (i % 5 == 0)
+                val innerRad: Float = if (isHour) 0.9f else 0.95f
+                if (isHour) {
+                    clockFaceArray1.addElement(
+                        Vertex(
+                            pt + v * startMag * innerRad,
+                            clockFaceColor
+                        )
+                    )
+                    clockFaceArray1.addElement(
+                        Vertex(
+                            pt + v * startMag * 1.0f,
+                            clockFaceColor
+                        )
+                    )
+                } else {
+                    clockFaceArray2.addElement(
+                        Vertex(
+                            pt + v * startMag * innerRad,
+                            clockFaceColor
+                        )
+                    )
+                    clockFaceArray2.addElement(
+                        Vertex(
+                            pt + v * startMag * 1.0f,
+                            clockFaceColor
+                        )
+                    )
+                }
+            }
+
             handler.removeCallbacks(drawRunner)
-            if (visible) {
+            if(isVisible) {
                 handler.post(drawRunner)
             }
         }
 
+        //Called if Wallpaper Colors Wanted
+        @RequiresApi(Build.VERSION_CODES.O_MR1)
+        override fun onComputeColors(): WallpaperColors? {
+            return WallpaperColors(
+                Color.valueOf(fractalColor),
+                Color.valueOf(clockFaceColor),
+                Color.valueOf(backgroundColor)
+            )
+        }
 
-
-        private fun updatePreference(preference: SharedPreferences) {
-            drawClock = preference.getBoolean("draw_clock", true)
-            useTick = preference.getBoolean("use_tick", false)
-            drawBranches = preference.getBoolean("draw_branches", true)
-            antiAliasing = preference.getBoolean("use_antialiasing", true)
-            everySecond = preference.getBoolean("every_second", false)
-            maxIters = preference.getInt("max_iters", 12)
-            fps = preference.getInt("fps", 60).toFloat()
-            scalingFactor = preference.getInt("scaling_factor", 50).toFloat() / 100f
-            clockFaceColor = preference.getInt("color_clock", 0)
-            backgroundColor = preference.getInt("color_background", 0)
-            clockType = when(preference.getString("clock_type", "1")){
-                "1" -> {
-                    ClockType.HMS
+        //Called if Shared Preference are changed
+        override fun onSharedPreferenceChanged(preference: SharedPreferences?, id: String?) {
+            if (preference != null) {
+                when(id) {
+                    "draw_clock" -> drawClock = preference.getBoolean("draw_clock", true)
+                    "use_tick" -> useTick = preference . getBoolean ("use_tick", false)
+                    "draw_branches" -> drawBranches = preference.getBoolean("draw_branches", true)
+                    "use_antialiasing" -> antiAliasing = preference.getBoolean("use_antialiasing", true)
+                    "every_second" -> everySecond = preference . getBoolean ("every_second", false)
+                    "max_iters" -> maxIters = preference.getInt("max_iters", 12)
+                    "fps" -> fps = preference.getInt("fps", 60).toFloat()
+                    "scaling_factor" -> scalingFactor = preference . getInt ("scaling_factor", 50).toFloat() / 100f
+                    "color_clock" -> clockFaceColor = preference.getInt("color_clock", 0)
+                    "color_background" -> backgroundColor = preference . getInt ("color_background", 0)
+                    "clock_type" -> clockType = when (preference.getString("clock_type", "1")) {
+                        "1" -> {
+                            ClockType.HMS
+                        }
+                        "2" -> {
+                            ClockType.HM
+                        }
+                        "3" -> {
+                            ClockType.MS
+                        }
+                        else -> {
+                            ClockType.HMS
+                        }
+                    }
+                    else -> {
+                        drawClock = preference.getBoolean("draw_clock", true)
+                        useTick = preference . getBoolean ("use_tick", false)
+                        drawBranches = preference.getBoolean("draw_branches", true)
+                        antiAliasing = preference.getBoolean("use_antialiasing", true)
+                        everySecond = preference . getBoolean ("every_second", false)
+                        maxIters = preference.getInt("max_iters", 12)
+                        fps = preference.getInt("fps", 60).toFloat()
+                        scalingFactor = preference . getInt ("scaling_factor", 50).toFloat() / 100f
+                        clockFaceColor = preference.getInt("color_clock", 0)
+                        backgroundColor = preference . getInt ("color_background", 0)
+                        clockType = when (preference.getString("clock_type", "1")) {
+                            "1" -> {
+                            ClockType.HMS
+                        }
+                            "2" -> {
+                            ClockType.HM
+                        }
+                            "3" -> {
+                            ClockType.MS
+                        }
+                            else -> {
+                            ClockType.HMS
+                        }
+                        }
+                    }
                 }
-                "2" -> {
-                    ClockType.HM
-                }
-                "3" -> {
-                    ClockType.MS
-                }
-                else -> {
-                    ClockType.HMS
-                }
+                updateClockFace()
             }
-            //Update the clock face
+        }
+
+        //Sets Visibility and Callback
+        private fun setVisibility(vis: Boolean){
+            handler.removeCallbacks(drawRunner)
+            if (vis) {
+                handler.post(drawRunner)
+            }
+        }
+
+        //Updates Clock Face
+        private fun updateClockFace() {
             clockFaceArray1.clear()
             clockFaceArray2.clear()
             for (i in 0 until 60) {
@@ -202,87 +315,29 @@ class FractalWallpaperService: WallpaperService() {
             }
         }
 
-        //Called if Surface Changed
-        override fun onSurfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int){
-            super.onSurfaceChanged(holder, format, width, height)
-            this.width = width
-            this.height = height
-            this.format = format
-            //Update the clock face
-            clockFaceArray1.clear()
-            clockFaceArray2.clear()
-            for (i in 0 until 60) {
-                val pt = Vector2f(
-                    this.width.toFloat() * scalingFactor * 0.5f,
-                    this.height.toFloat() * scalingFactor * 0.5f
-                )
-                val startMag: Float = min(this.width, this.height) * scalingFactor * 0.5f * (1.0f - ratio) / ratio
-                val ang: Float = i.toFloat() * 2.0f * PI.toFloat() / 60.0f
-                val v =
-                    Vector2f(cos(ang), sin(ang))
-                val isHour: Boolean = (i % 5 == 0)
-                val innerRad: Float = if (isHour) 0.9f else 0.95f
-                if(isHour) {
-                    clockFaceArray1.addElement(
-                        Vertex(
-                            pt + v * startMag * innerRad,
-                            clockFaceColor
-                        )
-                    )
-                    clockFaceArray1.addElement(
-                        Vertex(
-                            pt + v * startMag * 1.0f,
-                            clockFaceColor
-                        )
-                    )
-                } else {
-                    clockFaceArray2.addElement(
-                        Vertex(
-                            pt + v * startMag * innerRad,
-                            clockFaceColor
-                        )
-                    )
-                    clockFaceArray2.addElement(
-                        Vertex(
-                            pt + v * startMag * 1.0f,
-                            clockFaceColor
-                        )
-                    )
-                }
-            }
-
-            handler.removeCallbacks(drawRunner)
-            handler.post(drawRunner)
-        }
-
-        //Called if Wallpaper Colors Wanted
-        @RequiresApi(Build.VERSION_CODES.O_MR1)
-        override fun onComputeColors(): WallpaperColors? {
-            return WallpaperColors(Color.valueOf(fractalColor), Color.valueOf(clockFaceColor), Color.valueOf(backgroundColor))
-        }
-
         //Draws the Wallpaper
-        private fun draw(){
+        private fun draw() {
             val holder = surfaceHolder
             var canvas: Canvas? = null
             try {
-                 canvas = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                canvas = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     holder.lockHardwareCanvas()
                 } else {
                     holder.lockCanvas()
                 }
-            } catch(e: Exception){}
+            } catch (e: Exception) {
+            }
             val cal = Calendar.getInstance()
             val lastTime: Long = cal.timeInMillis
             if (canvas != null) {
                 //Calculate maximum iterations
                 var iters: Int = maxIters
-                if(clockType == ClockType.HMS){
+                if (clockType == ClockType.HMS) {
                     iters = maxIters - 3
                 }
 
                 //Get the time
-                if(everySecond){
+                if (everySecond) {
                     cal.set(Calendar.MILLISECOND, 0)
                 }
                 val now: Long = cal.timeInMillis
@@ -291,18 +346,19 @@ class FractalWallpaperService: WallpaperService() {
                 cal.set(Calendar.SECOND, 0)
                 cal.set(Calendar.MILLISECOND, 0)
                 val passedL: Long = now - cal.timeInMillis
-                var passedF: Float = passedL/1000.0f
-                if(useTick){
+                var passedF: Float = passedL / 1000.0f
+                if (useTick) {
                     val a = 30.0f
                     val b = 14.0f
-                    val x : Float = passedF % 1.0f
-                    val y : Float = 1.0f - cos(a * x) * exp(-b*x)
+                    val x: Float = passedF % 1.0f
+                    val y: Float = 1.0f - cos(a * x) * exp(-b * x)
                     passedF = passedF - x + y
                 }
                 val seconds: Float = ((passedF % 60.0f) * 2.0f * PI.toFloat()) / 60.0f
                 val minutes: Float = ((passedF % 3600.0f) * 2.0f * PI.toFloat()) / 3600.0f
                 val hours: Float = ((passedF % 43200.0f) * 2.0f * PI.toFloat()) / 43200.0f
-                val startMag: Float = min(this.width, this.height) * scalingFactor * 0.5f * (1.0f - ratio) / ratio
+                val startMag: Float =
+                    min(this.width, this.height) * scalingFactor * 0.5f * (1.0f - ratio) / ratio
 
                 //Update the clock
                 rotH =
@@ -335,17 +391,19 @@ class FractalWallpaperService: WallpaperService() {
                 for (i in 0 until iters) {
                     val a: Float = i.toFloat() / (iters - 1).toFloat()
                     val h: Float = (r2 + 0.5f * a) % 1.0f
-                    val s: Float = 0.5f + 0.5f * r3 - 0.5f*(1.0f - a)
+                    val s: Float = 0.5f + 0.5f * r3 - 0.5f * (1.0f - a)
                     val v: Float = 0.3f + 0.5f * r1
                     if (i == 0) {
                         val color: Int = hsvToColor(h, 1.0f, 1.0f)
 
-                        colorScheme[i] = Color.argb(128, Color.red(color), Color.green(color), Color.blue(color))
+                        colorScheme[i] =
+                            Color.argb(128, Color.red(color), Color.green(color), Color.blue(color))
                     } else if (i == iters - 1 && drawClock) {
                         colorScheme[i] = clockFaceColor
                     } else {
-                        val color: Int =  hsvToColor(h, s, v)
-                        colorScheme[i] = Color.argb(255, Color.red(color), Color.green(color), Color.blue(color))
+                        val color: Int = hsvToColor(h, s, v)
+                        colorScheme[i] =
+                            Color.argb(255, Color.red(color), Color.green(color), Color.blue(color))
                     }
                 }
 
@@ -356,24 +414,54 @@ class FractalWallpaperService: WallpaperService() {
                 val pointArray: Vector<Vertex> = Vector()
                 when (clockType) {
                     ClockType.HM -> {
-                        fractalIterHM(pt, dir, iters - 1, lineArray, pointArray, colorScheme, true, canvas)
+                        fractalIterHM(
+                            pt,
+                            dir,
+                            iters - 1,
+                            lineArray,
+                            pointArray,
+                            colorScheme,
+                            true,
+                            canvas
+                        )
                     }
                     ClockType.HMS -> {
-                        fractalIterHMS(pt, dir, iters - 1, lineArray, pointArray, colorScheme, true, canvas)
+                        fractalIterHMS(
+                            pt,
+                            dir,
+                            iters - 1,
+                            lineArray,
+                            pointArray,
+                            colorScheme,
+                            true,
+                            canvas
+                        )
                     }
                     ClockType.MS -> {
-                        fractalIterMS(pt, dir, iters - 1, lineArray, pointArray, colorScheme, true, canvas)
+                        fractalIterMS(
+                            pt,
+                            dir,
+                            iters - 1,
+                            lineArray,
+                            pointArray,
+                            colorScheme,
+                            true,
+                            canvas
+                        )
                     }
                 }
-
 
 
                 //Draw the final fractal in a brighter color
                 val pointPaint = Paint(if (antiAliasing) Paint.ANTI_ALIAS_FLAG else 0)
                 pointPaint.strokeWidth = 1.0f / scalingFactor
-                for(i in pointArray){
+                for (i in pointArray) {
                     pointPaint.color = i.color
-                    canvas.drawPoint(i.position.x / scalingFactor, i.position.y / scalingFactor, pointPaint)
+                    canvas.drawPoint(
+                        i.position.x / scalingFactor,
+                        i.position.y / scalingFactor,
+                        pointPaint
+                    )
                 }
                 fractalColor = colorScheme[0]
                 //Draw the clock
@@ -381,7 +469,7 @@ class FractalWallpaperService: WallpaperService() {
                     //Draw Lines
                     val clockPaint = Paint(if (antiAliasing) Paint.ANTI_ALIAS_FLAG else 0)
                     clockPaint.color = clockFaceColor
-                    when(clockType){
+                    when (clockType) {
                         ClockType.HMS -> {
                             clockPaint.strokeWidth = 5.0f
                             canvas.drawLine(base.x, base.y, hour.x, hour.y, clockPaint)
@@ -407,37 +495,48 @@ class FractalWallpaperService: WallpaperService() {
                     //Draw the clock face lines
                     clockPaint.color = clockFaceColor
                     clockPaint.strokeWidth = 4.0f
-                    for(i in 0 until clockFaceArray1.size step 2){
-                        canvas.drawLine(clockFaceArray1[i].position.x / scalingFactor, clockFaceArray1[i].position.y / scalingFactor, clockFaceArray1[i+1].position.x / scalingFactor, clockFaceArray1[i+1].position.y / scalingFactor, clockPaint)
+                    for (i in 0 until clockFaceArray1.size step 2) {
+                        canvas.drawLine(
+                            clockFaceArray1[i].position.x / scalingFactor,
+                            clockFaceArray1[i].position.y / scalingFactor,
+                            clockFaceArray1[i + 1].position.x / scalingFactor,
+                            clockFaceArray1[i + 1].position.y / scalingFactor,
+                            clockPaint
+                        )
                     }
                     clockPaint.strokeWidth = 2.0f
-                    for(i in 0 until clockFaceArray2.size step 2){
-                        canvas.drawLine(clockFaceArray2[i].position.x / scalingFactor, clockFaceArray2[i].position.y / scalingFactor, clockFaceArray2[i+1].position.x / scalingFactor, clockFaceArray2[i+1].position.y / scalingFactor, clockPaint)
+                    for (i in 0 until clockFaceArray2.size step 2) {
+                        canvas.drawLine(
+                            clockFaceArray2[i].position.x / scalingFactor,
+                            clockFaceArray2[i].position.y / scalingFactor,
+                            clockFaceArray2[i + 1].position.x / scalingFactor,
+                            clockFaceArray2[i + 1].position.y / scalingFactor,
+                            clockPaint
+                        )
                     }
                 }
             }
             if (canvas != null) {
                 try {
                     holder.unlockCanvasAndPost(canvas)
-                } catch(e: Exception){}
+                } catch (e: Exception) {
+                }
             }
             handler.removeCallbacks(drawRunner)
-            if (visible) {
-                val cal2 = Calendar.getInstance()
-                if(fps <= 0) {
-                    handler.post(drawRunner)
+            val cal2 = Calendar.getInstance()
+            if (fps <= 0) {
+                handler.post(drawRunner)
+            } else {
+                if (everySecond) {
+                    handler.postDelayed(
+                        drawRunner,
+                        (1000.0f - (cal2.timeInMillis - lastTime)).toLong()
+                    )
                 } else {
-                    if(everySecond){
-                        handler.postDelayed(
-                            drawRunner,
-                            (1000.0f - (cal2.timeInMillis - lastTime)).toLong()
-                        )
-                    } else {
-                        handler.postDelayed(
-                            drawRunner,
-                            (1000.0f / fps - (cal2.timeInMillis - lastTime)).toLong()
-                        )
-                    }
+                    handler.postDelayed(
+                        drawRunner,
+                        (1000.0f / fps - (cal2.timeInMillis - lastTime)).toLong()
+                    )
                 }
             }
         }
@@ -454,7 +553,7 @@ class FractalWallpaperService: WallpaperService() {
             var r = 0.0f
             var g = 0.0f
             var b = 0.0f
-            when(i % 6){
+            when (i % 6) {
                 0 -> {
                     r = v; g = t; b = p
                 }
@@ -480,7 +579,7 @@ class FractalWallpaperService: WallpaperService() {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 Color.rgb(r, g, b)
             } else {
-                Color.rgb((r*255).toInt(), (g*255).toInt(), (b*255).toInt())
+                Color.rgb((r * 255).toInt(), (g * 255).toInt(), (b * 255).toInt())
             }
         }
 
@@ -512,16 +611,46 @@ class FractalWallpaperService: WallpaperService() {
                     (dir.x * rotH.x - dir.y * rotH.y) * ratioH,
                     (dir.y * rotH.x + dir.x * rotH.y) * ratioH
                 )
-                fractalIterHM(pt + dirM, dirM, depth - 1, lineArray, pointArray, colorScheme, false, canvas)
-                fractalIterHM(pt + dirH, dirH, depth - 1, lineArray, pointArray, colorScheme, false, canvas)
-                if(((!initialCall) or (!drawClock)) and drawBranches) {
+                fractalIterHM(
+                    pt + dirM,
+                    dirM,
+                    depth - 1,
+                    lineArray,
+                    pointArray,
+                    colorScheme,
+                    false,
+                    canvas
+                )
+                fractalIterHM(
+                    pt + dirH,
+                    dirH,
+                    depth - 1,
+                    lineArray,
+                    pointArray,
+                    colorScheme,
+                    false,
+                    canvas
+                )
+                if (((!initialCall) or (!drawClock)) and drawBranches) {
                     val paint = Paint(if (antiAliasing) Paint.ANTI_ALIAS_FLAG else 0)
                     paint.color = col
                     paint.strokeWidth = 2.0f
-                    canvas.drawLine(pt.x / scalingFactor,pt.y / scalingFactor, (pt + dirM).x / scalingFactor, (pt + dirM).y / scalingFactor, paint)
-                    canvas.drawLine(pt.x / scalingFactor,pt.y / scalingFactor, (pt + dirH).x / scalingFactor, (pt + dirH).y / scalingFactor, paint)
+                    canvas.drawLine(
+                        pt.x / scalingFactor,
+                        pt.y / scalingFactor,
+                        (pt + dirM).x / scalingFactor,
+                        (pt + dirM).y / scalingFactor,
+                        paint
+                    )
+                    canvas.drawLine(
+                        pt.x / scalingFactor,
+                        pt.y / scalingFactor,
+                        (pt + dirH).x / scalingFactor,
+                        (pt + dirH).y / scalingFactor,
+                        paint
+                    )
                 }
-                if(initialCall and drawClock) {
+                if (initialCall and drawClock) {
                     base = Vector2f(
                         pt.x / scalingFactor,
                         pt.y / scalingFactor
@@ -570,18 +699,63 @@ class FractalWallpaperService: WallpaperService() {
                     (dir.x * rotH.x - dir.y * rotH.y) * ratioH,
                     (dir.y * rotH.x + dir.x * rotH.y) * ratioH
                 )
-                fractalIterHMS(pt + dirS, dirS, depth - 1, lineArray, pointArray, colorScheme, false, canvas)
-                fractalIterHMS(pt + dirM, dirM, depth - 1, lineArray, pointArray, colorScheme, false, canvas)
-                fractalIterHMS(pt + dirH, dirH, depth - 1, lineArray, pointArray, colorScheme, false, canvas)
-                if(((!initialCall) or (!drawClock)) and drawBranches) {
+                fractalIterHMS(
+                    pt + dirS,
+                    dirS,
+                    depth - 1,
+                    lineArray,
+                    pointArray,
+                    colorScheme,
+                    false,
+                    canvas
+                )
+                fractalIterHMS(
+                    pt + dirM,
+                    dirM,
+                    depth - 1,
+                    lineArray,
+                    pointArray,
+                    colorScheme,
+                    false,
+                    canvas
+                )
+                fractalIterHMS(
+                    pt + dirH,
+                    dirH,
+                    depth - 1,
+                    lineArray,
+                    pointArray,
+                    colorScheme,
+                    false,
+                    canvas
+                )
+                if (((!initialCall) or (!drawClock)) and drawBranches) {
                     val paint = Paint(if (antiAliasing) Paint.ANTI_ALIAS_FLAG else 0)
                     paint.color = col
                     paint.strokeWidth = 2.0f
-                    canvas.drawLine(pt.x / scalingFactor,pt.y / scalingFactor, (pt + dirS).x / scalingFactor, (pt + dirS).y / scalingFactor, paint)
-                    canvas.drawLine(pt.x / scalingFactor,pt.y / scalingFactor, (pt + dirM).x / scalingFactor, (pt + dirM).y / scalingFactor, paint)
-                    canvas.drawLine(pt.x / scalingFactor,pt.y / scalingFactor, (pt + dirH).x / scalingFactor, (pt + dirH).y / scalingFactor, paint)
+                    canvas.drawLine(
+                        pt.x / scalingFactor,
+                        pt.y / scalingFactor,
+                        (pt + dirS).x / scalingFactor,
+                        (pt + dirS).y / scalingFactor,
+                        paint
+                    )
+                    canvas.drawLine(
+                        pt.x / scalingFactor,
+                        pt.y / scalingFactor,
+                        (pt + dirM).x / scalingFactor,
+                        (pt + dirM).y / scalingFactor,
+                        paint
+                    )
+                    canvas.drawLine(
+                        pt.x / scalingFactor,
+                        pt.y / scalingFactor,
+                        (pt + dirH).x / scalingFactor,
+                        (pt + dirH).y / scalingFactor,
+                        paint
+                    )
                 }
-                if(initialCall and drawClock) {
+                if (initialCall and drawClock) {
                     base = Vector2f(
                         pt.x / scalingFactor,
                         pt.y / scalingFactor
@@ -630,16 +804,46 @@ class FractalWallpaperService: WallpaperService() {
                     (dir.x * rotM.x - dir.y * rotM.y) * ratioM,
                     (dir.y * rotM.x + dir.x * rotM.y) * ratioM
                 )
-                fractalIterMS(pt + dirS, dirS, depth - 1, lineArray, pointArray, colorScheme, false, canvas)
-                fractalIterMS(pt + dirM, dirM, depth - 1, lineArray, pointArray, colorScheme, false, canvas)
-                if(((!initialCall) or !drawClock) and drawBranches) {
+                fractalIterMS(
+                    pt + dirS,
+                    dirS,
+                    depth - 1,
+                    lineArray,
+                    pointArray,
+                    colorScheme,
+                    false,
+                    canvas
+                )
+                fractalIterMS(
+                    pt + dirM,
+                    dirM,
+                    depth - 1,
+                    lineArray,
+                    pointArray,
+                    colorScheme,
+                    false,
+                    canvas
+                )
+                if (((!initialCall) or !drawClock) and drawBranches) {
                     val paint = Paint(if (antiAliasing) Paint.ANTI_ALIAS_FLAG else 0)
                     paint.strokeWidth = 2.0f / scalingFactor
                     paint.color = col
-                    canvas.drawLine(pt.x / scalingFactor,pt.y / scalingFactor, (pt + dirS).x / scalingFactor, (pt + dirS).y / scalingFactor, paint)
-                    canvas.drawLine(pt.x / scalingFactor,pt.y / scalingFactor, (pt + dirM).x / scalingFactor, (pt + dirM).y / scalingFactor, paint)
+                    canvas.drawLine(
+                        pt.x / scalingFactor,
+                        pt.y / scalingFactor,
+                        (pt + dirS).x / scalingFactor,
+                        (pt + dirS).y / scalingFactor,
+                        paint
+                    )
+                    canvas.drawLine(
+                        pt.x / scalingFactor,
+                        pt.y / scalingFactor,
+                        (pt + dirM).x / scalingFactor,
+                        (pt + dirM).y / scalingFactor,
+                        paint
+                    )
                 }
-                if(initialCall and drawClock){
+                if (initialCall and drawClock) {
                     base = Vector2f(
                         pt.x / scalingFactor,
                         pt.y / scalingFactor
